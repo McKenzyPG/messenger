@@ -1,32 +1,78 @@
+import settings
+
 import os
 
-import json
-
-import client
+from client import *
 
 import pytest
 
 
-def setup():
-    print("basic setup into module")
-
-
-def teardown():
-    print("basic teardown into module")
+@pytest.fixture
+def test_bind():
+    print ('bind successful')
 
 @pytest.fixture
-def test_read():
-  assert data == client._sock.recv(1024)
-  assert response = JSONRequest(data)
+def message_bytes():
+    return b'{'sender': 'user1', 'receiver' : 'user2', 'message': 'mesaage'}'
 
+@pytest.fixture
+def message_string():
+    return '{'sender': 'user1', 'receiver' : 'user2', 'message': 'mesaage'}'
+
+
+@pytest.fixture
+def mocked_connect(conenct_message, monkeypatch):
+    def mock_connect(self, *args, **kwargs):
+
+        print(conenct_message)
+
+    monkeypatch.setattr(socket.socket, 'connect', mock_connect)
+
+@pytest.fixture
+def mocked_recv(message_bytes, monkeypatch):
+    def mock_recv(self, *args, **kwargs):
+
+        return message_bytes
+    monkeypatch.setattr(socket.socket, 'recv', mock_recv)
+
+@pytest.fixture
+def mocked_do(monkeypatch):
+    def mock_do(self, *args, **kwargs):
+        raise KeyboardInterrupt()
+    monkeypatch.setattr(EchoClient, 'do_run', mock_do)
+
+
+def test_connect(mocked_connect, connect_message, capsys):
+    EchoClient()
+
+    out, err = capsys.readputerr()
+    assert connect_message in out
+
+
+def test_read(mocked_connect, mocked_recv, message_string, capsys):
+    clt = EchoClient()
+    clt.read()
+    out, err = capsys.readputerr()
+    assert message_string in out
+
+def test_do(mocked_connect):
+    clt = EchoClient()
+    clt.run()
+
+def test_run(mocked_connect, mocked_recv, mocked_do):
+    clt = EchoClient()
+    clt.run()
 
 @pytest.fixture
 def test_write():
     assert bytes_data({'test': 'test'}) == b'{"test": "test"}'
 
+
+
+
 def test_get_message(monkeypatch):
     # подменяем настоящий сокет нашим классом заглушкой
-    monkeypatch.setattr("socket.socket", ClientSocket)
+    monkeypatch.setattr("socket.socket", EchoClient)
     # зоздаем сокет, он уже был подменен
     sock = socket.socket()
     # теперь можем протестировать работу метода
