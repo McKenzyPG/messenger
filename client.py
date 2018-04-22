@@ -2,11 +2,12 @@ import socket
 import time
 import settings
 from JSON import JSONRequest, JSONResponse
+import zlib
 
 class EchoClient():
     def __init__(self):
         self._sock = socket.socket()
-        self._sock.connect((settings.HOST,settings.PORT))
+        self._sock.connect((settings.HOST, settings.PORT))
 
     def read(self, sock):
 
@@ -14,7 +15,7 @@ class EchoClient():
         data = self._sock.recv(settings.BUFFER_SIZE)
 
         # Передаем полученные данные в конструктор JSONResponse
-        response = JSONResponse(data)
+        response = JSONResponse(zlib.decompress(data))
 
         # Выводим тело запроса на экран
         print(response.body)
@@ -30,7 +31,10 @@ class EchoClient():
         bytes_data = request.to_bytes()
 
         # Отправляем данные на сервер
-        self._sock.send(bytes_data)
+        self._sock.send(zlib.compress(bytes_data))
+
+    def do_run(self, *args, **kwargs):
+        pass
 
     def run(self):
 
@@ -42,6 +46,8 @@ class EchoClient():
 
                 # Получаем ответ сервера
                 self.read(self._sock)
+
+                self.do_run()
 
         except KeyboardInterrupt:
 

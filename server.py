@@ -6,6 +6,8 @@ import json
 
 import JSON as jr
 
+import zlib
+
 
 class EchoServer():
 
@@ -56,7 +58,7 @@ class EchoServer():
                 response = JSONResponse(200, 'echo', request.body)
 
                 # Переводим JSONResponse в bytes
-                bytes_message = response.to_bytes()
+                bytes_message = zlib.compress(response.to_bytes())
 
                 # Отправляем данные на клиент
                 client.send(bytes_message)
@@ -142,7 +144,7 @@ if __name__ == '__main__':
                         if requests:
                             message = json.dumps(requests)
                             bytes_message = message.encode(settings.ENCODING)
-                            client.send(bytes_message)
+                            client.send(zlib.compress(bytes_message))
             except (ConnectionResetError, BrokenPipeError):
                     del connections[address]
 
