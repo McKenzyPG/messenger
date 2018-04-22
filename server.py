@@ -7,6 +7,9 @@ import json
 import JSON as jr
 
 import zlib
+import logging
+
+log_server = logging.getLogger('messenger.server')
 
 
 class EchoServer():

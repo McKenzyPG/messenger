@@ -3,6 +3,10 @@ import time
 import settings
 from JSON import JSONRequest, JSONResponse
 import zlib
+import logging
+
+log_client = logging.getLogger('messenger.client')
+log_debug = logging.getLogger('messenger.debug')
 
 class EchoClient():
     def __init__(self):
