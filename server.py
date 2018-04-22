@@ -2,7 +2,7 @@ import socket
 
 import settings
 
-import collections
+import json
 
 import JSON as jr
 
@@ -69,6 +69,8 @@ class EchoServer():
                     self._connections.remove(client)
 
 
+    def do_mainloop(self, *args, **kwargs):
+        pass
 
     def mainloop(self):
 
@@ -77,6 +79,8 @@ class EchoServer():
             while True:
 
                 # Обрабатываем подключения к серверу
+
+                self.do_mainloop()
                 self.connect()
 
                 for client in self._connections:
@@ -92,6 +96,7 @@ class EchoServer():
                         # Отправляем запрос слиенту
                         self.write(client, request)
 
+
         except KeyboardInterrupt:
 
             # Обрабатываем сочетание клавишь Ctrl+C
@@ -99,6 +104,49 @@ class EchoServer():
 
 
 if __name__ == '__main__':
+
+    import select
+    import collections
+    connections = dict()
+
+    with socket.socket() as sock:
+        sock.bind((settings.HOST, settings.PORT))
+        sock.listen(settings.N_CLIENTS)
+        sock.settimeout(settings.TIMEOUT)
+
+        while True:
+            requests = dict()
+
+            try:
+                client, address = sock.accept()
+                connections.update({address:client})
+
+            except OSError:
+                pass
+            work_copy = connections.copy()
+            clients = work_copy.values()
+
+            rlist, wlist, xlist = select.select(clients, clients, [], 0)
+
+            print('waiting')
+
+            for address, client in work_copy.items():
+                try:
+                    if client in rlist:
+                        str_address = address[0] + ':' + str(address[1])
+                        data = client.recv(settings.BUFFER_SIZE)
+                        if data:
+                            str_data = data.decode(settings.ENCODING)
+                            requests.update({str_address:str_data})
+                    if client in wlist:
+                        if requests:
+                            message = json.dumps(requests)
+                            bytes_message = message.encode(settings.ENCODING)
+                            client.send(bytes_message)
+            except (ConnectionResetError, BrokenPipeError):
+                    del connections[address]
+
     server = EchoServer()
 
     server.mainloop()
+
