@@ -1,11 +1,16 @@
 import sys
 from PyQt5.QtWidgets import (QMainWindow, QTextEdit, QLabel,
-    QAction, QFileDialog, QApplication, QLineEdit, QVBoxLayout, QWidget)
-from PyQt5.QtGui import QPixmap, QIcon, QFont
+    QAction, QFileDialog, QApplication, QLineEdit, QVBoxLayout, QWidget, QHBoxLayout)
+from PyQt5.QtGui import QPixmap, QIcon, QFont, QPixmap, QImage, qRgb
 import random
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw 
 from PIL.ImageQt import ImageQt
-
+import random
+from sqlalchemy import Column, ForeignKey, Integer, String, BLOB
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import relationship
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 
 class TextDisplay(QTextEdit):
 
@@ -45,6 +50,17 @@ class AppWindow(QMainWindow):
 
         self.setCentralWidget(widget)
 
+class Image(Base):
+
+    __tablename__ = 'image'
+
+    id = Column(Integer, primary_key=True)
+
+    # name = Column(String)
+
+    Data = Column(BLOB)
+
+    # entension = Column(String)
 
 class Example(QMainWindow):
 
@@ -53,9 +69,57 @@ class Example(QMainWindow):
 
         self.initUI()
 
-
     def initUI(self):
+	# Crop function
+        width = 500
 
+        height = 347
+
+        # x_left = 50
+
+        # y_top = 50
+
+        # x_right = x_left + 150
+
+        # y_bottom = y_top + 150
+
+
+        x_center = width // 2
+
+        y_center = height // 2
+
+
+        x_left = x_center - 75
+
+        y_top = y_center - 75
+
+        x_right = x_left + 150
+
+        y_bottom = y_top + 150
+
+
+        imageFile = "image.jpg"
+
+        image = Image.open(imageFile)
+
+        image = image.crop((x_left, y_top, x_right, y_bottom))
+
+        draw = ImageDraw.Draw(image)
+
+        img_tmp = ImageQt(image.convert('RGBA'))
+
+        hbox = QHBoxLayout(self)
+        pixmap = QPixmap.fromImage(img_tmp)
+
+        lbl = QLabel(self)
+        lbl.setPixmap(pixmap)
+
+        hbox.addWidget(lbl)
+        self.setLayout(hbox)
+
+        self.move(300, 200)
+        self.setWindowTitle('Example')
+        self.show()
 
 	#File upload method
         self.lbl = QLabel(self)
@@ -256,6 +320,35 @@ class Example(QMainWindow):
         self.lbl.setPixmap(pixmap)
 
        # lbl.setPixmap(pixmap)
+
+
+	# Image save to db (binary using ORM)
+    def __render__(self):
+
+        engine = create_engine('sqlite:///image.db')
+
+        engine.echo = True
+
+        session = sessionmaker()
+        session.configure(bind=engine)
+        Base.metadata.create_all(engine)
+
+        file = open("image.jpg", "rb")
+
+        img = file.read()
+
+        file.close()
+
+        s = session()
+        images = Image( Data = img )
+        s.add(images)
+        s.commit()
+
+
+
+        self.move(300, 200)
+        self.setWindowTitle('Example')
+        self.show()
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
